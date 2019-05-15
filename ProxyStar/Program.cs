@@ -18,6 +18,8 @@ namespace ProxyStar
         public static int threads;
         public static bool http, socks4, socks5;
         public static int working, bad, Checked;
+
+
         public static void Menu()
         {
             Console.Clear();
