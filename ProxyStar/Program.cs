@@ -32,9 +32,7 @@ namespace ProxyStar
             }
             else if (UserInput.Key == ConsoleKey.D2)
             {
-               
                 socks4 = true;
-                
             }
             else if (UserInput.Key == ConsoleKey.D3)
             {
