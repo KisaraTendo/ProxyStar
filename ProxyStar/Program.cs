@@ -16,8 +16,14 @@ namespace ProxyStar
     {
         private static Queue<string> ProxyQueue = new Queue<string>(File.ReadAllLines("proxies.txt"));
         public static int threads;
-        public static bool http, socks4, socks5;
-        public static int working, bad, Checked;
+        public enum ProxyTypes
+        {
+            Http,
+            Socks4,
+            Socks5
+        }
+        public static ProxyTypes type;
+        public static int Working, Dead, Checked;
 
 
         public static void Menu()
@@ -29,16 +35,16 @@ namespace ProxyStar
 
             var UserInput = Console.ReadKey();
             if (UserInput.Key == ConsoleKey.D1)
-            { 
-                http = true;
+            {
+                type = ProxyTypes.Http;
             }
             else if (UserInput.Key == ConsoleKey.D2)
             {
-                socks4 = true;
+                type = ProxyTypes.Socks4;
             }
             else if (UserInput.Key == ConsoleKey.D3)
             {
-                socks5 = true;
+                type = ProxyTypes.Socks5;
             }
             else { Menu(); }
 
@@ -58,68 +64,42 @@ namespace ProxyStar
                 try
                 {
                     string[] proxy = FProxy.Split(':'); string ip = proxy[0]; int port = Convert.ToInt32(proxy[1]);
-                    if (http)
+                    var HttpClientHandler = new HttpClientHandler(); HttpClientHandler.UseProxy = true;
+                    switch (type)
                     {
-                        var HttpClientHandler = new HttpClientHandler { Proxy = new WebProxy($"http://{proxy[0]}:{proxy[1]}", false), UseProxy = true };
-                        var client = new HttpClient(HttpClientHandler); 
-                        HttpResponseMessage httpResponse = client.GetAsync(uri).Result;
-                        string response = httpResponse.Content.ReadAsStringAsync().Result;
-                        if (response.Contains(ip))
-                        {
-
-                            working++;
-                        }
-                        else
-                        {
-                            Console.Write(response + "\n\n");
-                            bad++;
-                        }
-
+                        case ProxyTypes.Http:
+                            HttpClientHandler.Proxy = new WebProxy($"http://{proxy[0]}:{proxy[1]}");
+                            break;
+                        case ProxyTypes.Socks4:
+                            var Socks4Proxy = new ProxyClient(ip, port, ProxyType.Socks4);
+                            HttpClientHandler.Proxy = Socks4Proxy;
+                            break;
+                        case ProxyTypes.Socks5:
+                            var Socks5Proxy = new ProxyClient(ip, port, ProxyType.Socks5);
+                            HttpClientHandler.Proxy = Socks5Proxy;
+                            break;
                     }
-                    else if (socks4)
+                    var client = new HttpClient(HttpClientHandler);
+                    HttpResponseMessage httpResponse = client.GetAsync(uri).Result;
+                    string response = httpResponse.Content.ReadAsStringAsync().Result;
+                    if (response.Contains(ip))
                     {
-                        var Socks4Proxy = new ProxyClient(ip, port, ProxyType.Socks4);
-                        var HttpClientHandler = new HttpClientHandler { Proxy = Socks4Proxy, UseProxy = true };
-                        var client = new HttpClient(HttpClientHandler);
-
-                        HttpResponseMessage httpResponse = client.GetAsync(uri).Result;
-                        string response = httpResponse.Content.ReadAsStringAsync().Result;
-
-                        if (httpResponse.IsSuccessStatusCode)
-                        {
-                            working++;
-                        }
-                        else
-                        {
-                            bad++;
-                        }
+                        Working++;
+                        SaveData.WriteLinesToTxt($"Working-Proxies-{DateTime.Now.ToString("MM-dd-yyyy")}.txt", $"{ip}:{port}");
                     }
-                    else if (socks5)
+                    else
                     {
-                        var Socks5Proxy = new ProxyClient(ip, port, ProxyType.Socks5);
-                        var HttpClientHandler = new HttpClientHandler { Proxy = Socks5Proxy, UseProxy = true };
-                        var client = new HttpClient(HttpClientHandler);
-
-                        HttpResponseMessage httpResponse = client.GetAsync(uri).Result;
-                        string response = httpResponse.Content.ReadAsStringAsync().Result;
-
-                        if (httpResponse.IsSuccessStatusCode)
-                        {
-                            working++;
-                        }
-                        else
-                        {
-                            bad++;
-                        }
+                        Console.Write(response + "\n\n");
+                        Dead++;
                     }
-                    Checked++;
-                    Console.Title = $"ProxyStar V1.0.0 | Progress: {Checked}/{ProxyCount} | Working: {working} | Dead Proxies: {bad}";
+                    Console.Title = $"ProxyStar V1.0.0 | Progress: {Checked}/{ProxyCount} | Working: {Working} | Dead Proxies: {Dead}";
                 }
-                catch (HttpRequestException) { bad++; }
-                catch (NullReferenceException) { bad++; }
-                catch (TaskCanceledException ex) {}
-                
-                
+                catch (HttpRequestException) { Dead++; }
+                catch (AggregateException) { Dead++; }
+                catch (NullReferenceException) { Dead++; }
+                catch (TaskCanceledException) {}
+
+                Checked++;
             });
         }
 
