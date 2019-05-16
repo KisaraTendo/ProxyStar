@@ -14,6 +14,7 @@ namespace ProxyStar
 {
    class Program
     {
+        // Made by KisaraTendo on 5/16/2019
         private static Queue<string> ProxyQueue = new Queue<string>(File.ReadAllLines("proxies.txt"));
         public static int threads;
         public enum ProxyTypes
