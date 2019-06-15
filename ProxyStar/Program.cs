@@ -86,27 +86,37 @@ namespace ProxyStar
                     if (response.Contains(ip))
                     {
                         Working++;
+                        WriteConsole.ColorText($"WORKING: {ip}:{port}", ConsoleColor.Green);
                         SaveData.WriteLinesToTxt($"Working-Proxies-{DateTime.Now.ToString("MM-dd-yyyy")}.txt", $"{ip}:{port}");
                     }
                     else
                     {
-                        Console.Write(response + "\n\n");
                         Dead++;
+                        WriteConsole.ColorText($"BAD: {ip}:{port}", ConsoleColor.Red);
                     }
-                    Console.Title = $"ProxyStar V1.0.0 | Progress: {Checked}/{ProxyCount} | Working: {Working} | Dead Proxies: {Dead}";
+                    
                 }
-                catch (HttpRequestException) { Dead++; }
-                catch (AggregateException) { Dead++; }
-                catch (NullReferenceException) { Dead++; }
+                catch (HttpRequestException) { Dead++; WriteConsole.ColorText($"BAD: {FProxy}", ConsoleColor.Red); }
+                catch (AggregateException) { Dead++; WriteConsole.ColorText($"BAD: {FProxy}", ConsoleColor.Red); }
+                catch (NullReferenceException) { Dead++; WriteConsole.ColorText($"BAD: {FProxy}", ConsoleColor.Red); }
                 catch (TaskCanceledException) {}
 
                 Checked++;
+                Console.Title = $"ProxyStar V1.0.0 | Progress: {Checked}/{ProxyCount} | Working: {Working} | Dead Proxies: {Dead}";
             });
         }
 
         static void Main(string[] args)
         {
-            Menu();
+            if (!File.Exists("proxies.txt"))
+            {
+                WriteConsole.ColorText("Could not find proxies.txt! Make sure that proxies.txt is located in the root folder of this program!\n\n\n\n", ConsoleColor.Red);
+            }
+            else
+            {
+                Menu();
+            }
+           
         }
     }
 }
